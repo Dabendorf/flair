@@ -1,7 +1,7 @@
 import logging
 
 from pathlib import Path
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict
 
 import torch
 import torch.nn
@@ -20,25 +20,30 @@ log = logging.getLogger("flair")
 class SemanticRoleTagger(flair.nn.Model):
     def __init__(
             self,
-            embeddings: TokenEmbeddings,
+            #embeddings: TokenEmbeddings,
             tag_dictionary: Dictionary,
-            tag_type: str,
             embedding_size:int,
             rnn_hidden_size : int,
+            rnn_layers: int,
             beta: float = 1.0,
+            num_of_heads_h : int = 8,
+			dropout_rate : float = 0.8,
     ):
         super(SemanticRoleTagger, self).__init__()
 
         print("Embedding_size: "+str(embedding_size))
         print("rnn_hidden_size: "+str(rnn_hidden_size))
 
-        # embeddings
-        self.embeddings = embeddings
+        # embeddings Glove pre_implement?
+        #self.embeddings = embeddings
 
         # dictionaries
         self.tag_dictionary: Dictionary = tag_dictionary
-        self.tag_type: str = tag_type
+        #self.tag_type: str = tag_type
         self.tagset_size: int = len(tag_dictionary)
+        self.rnn_layers : int = rnn_layers
+        self.num_of_heads_h : int = num_of_heads_h
+        self.dropout_rate : float = dropout_rate
 
 
         # self.embedding = torch.nn.Embedding(len(vocabulary), embedding_size)
@@ -48,14 +53,16 @@ class SemanticRoleTagger(flair.nn.Model):
         # https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html
 
         self.multihead_attn = torch.nn.MultiheadAttention(embed_dim = embedding_size,
-                                                     num_heads = 8,
-                                                     dropout = 0.8)
+                                                     num_heads = num_of_heads_h,
+                                                     dropout = dropout_rate)
 
         self.lstm = torch.nn.LSTM(input_size = embedding_size,
                                  hidden_size = rnn_hidden_size,
                                  batch_first = True,
                                  bidirectional = True,
-                                 dropout = 0.8)
+                                 dropout = dropout_rate)
+
+        self.linear = torch.nn.Linear(embedding_size, len(tag_dictionary))
 
 
         # F-beta score
@@ -68,6 +75,7 @@ class SemanticRoleTagger(flair.nn.Model):
             self, data_points: Union[List[Sentence], Sentence], sort=True
     ) -> torch.tensor:
         features = self.forward(data_points)
+        # verschiedene Frames
         return self._calculate_loss(features, data_points)
 
 
@@ -87,7 +95,8 @@ class SemanticRoleTagger(flair.nn.Model):
         # attn_output, attn_output_weights = multihead_attn(query, key, value)
         # return F.log_softmax(features, dim=1)
 
-    def make_tag_dictionary(data) -> Dict[str, int]::
+    # Nicht mehr von Nöten
+    """def make_tag_dictionary(data) -> Dict[str, int]:
         # A dictionary of tags available (e.g. A0)
         label_to_ix = {}
         for label in data: # depends on where data comes from
@@ -95,6 +104,7 @@ class SemanticRoleTagger(flair.nn.Model):
                 label_to_ix[label] = len(label_to_ix)
         return label_to_ix
 
+    # Nicht mehr von Nöten
     def make_word_dictionary(data) -> Dict[str, int]:
         # A dictionary of words available
         word_to_ix = {}
@@ -104,10 +114,10 @@ class SemanticRoleTagger(flair.nn.Model):
                     word_to_ix[word] = len(word_to_ix)
         return word_to_ix
 
-    # Questions to myself:
-    # How does the data come in? (flair?)
-    # Do I need a third method for frames?
-    # What format will it be? (changing for loops)
+    def make_frame_dictionary(data) -> Dict[str, int]:
+        pass
+        # benötigt
+        # data.py Zeile 1350"""
 
 
 

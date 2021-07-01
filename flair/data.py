@@ -1359,6 +1359,19 @@ class Corpus:
         tag_dictionary.add_item("<STOP>")
         return tag_dictionary
 
+    def make_role_tag_dictionary(self) -> Dictionary:
+        """
+        Method makes a dictionary of semantic role tags for a corpus dataset having frame and semantic role information
+        :return: dictionary of semantic roles
+        """
+        tag_dictionary: Dictionary = Dictionary(add_unk=False)
+        # tag_dictionary.add_item("O")
+        for sentence in self.get_all_sentences():
+            for frame in sentence.frames:
+                for role in frame.roles:
+                    tag_dictionary.add_item(role[1])
+        return tag_dictionary
+
 
 class MultiCorpus(Corpus):
     def __init__(self, corpora: List[Corpus], name: str = "multicorpus", **corpusargs):
