@@ -46,11 +46,12 @@ class SemanticRoleTagger(flair.nn.Model):
         self.dropout_rate : float = dropout_rate
 
 
-        # self.embedding = torch.nn.Embedding(len(vocabulary), embedding_size)
         # self.hidden2tag = torch.nn.Linear(rnn_hidden_size, len(vocabulary))
         # self.linear = torch.nn.Linear(self.embeddings.embedding_length, len(tag_dictionary))
         # Multihead Attention
         # https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html
+
+        # self.embedding = torch.nn.Embedding(len(vocabulary), embedding_size) benötigt?
 
         self.multihead_attn = torch.nn.MultiheadAttention(embed_dim = embedding_size,
                                                      num_heads = num_of_heads_h,
@@ -60,7 +61,8 @@ class SemanticRoleTagger(flair.nn.Model):
                                  hidden_size = rnn_hidden_size,
                                  batch_first = True,
                                  bidirectional = True,
-                                 dropout = dropout_rate)
+                                 dropout = dropout_rate,
+                                 num_layers=rnn_layers)
 
         self.linear = torch.nn.Linear(embedding_size, len(tag_dictionary))
 
@@ -74,6 +76,15 @@ class SemanticRoleTagger(flair.nn.Model):
     def forward_loss(
             self, data_points: Union[List[Sentence], Sentence], sort=True
     ) -> torch.tensor:
+        print("Datapoints")
+        for sent in data_points:
+            print("==========")
+            # for token in sent:
+            #     print(token)
+            print(sent)
+            print(sent.frames)
+
+            # Hier für jeden Frame einen eigenen Durchlauf durchführen
         features = self.forward(data_points)
         # verschiedene Frames
         return self._calculate_loss(features, data_points)
@@ -82,6 +93,7 @@ class SemanticRoleTagger(flair.nn.Model):
     def forward(self, sentences: List[Sentence]):
         pass
         # Word & Predicate
+        # Embedding?
         # Nonlinear Sublayer: RNN
         # Attention Sublayer: Self-Attention
         # Repeat

@@ -51,10 +51,18 @@ class SimpleSequenceTagger(flair.nn.Model):
         # embeddings
         self.embeddings = embeddings
 
+        # print("Embeddings")
+        # print(embeddings.__str__)
+
         # dictionaries
         self.tag_dictionary: Dictionary = tag_dictionary
+        #print("Tag Dictionary")
+        # print(tag_dictionary)
+
         self.tag_type: str = tag_type
         self.tagset_size: int = len(tag_dictionary)
+        # print("tagset size")
+        # print(self.tagset_size)
 
         # linear layer
         self.linear = torch.nn.Linear(self.embeddings.embedding_length, len(tag_dictionary))
@@ -68,7 +76,9 @@ class SimpleSequenceTagger(flair.nn.Model):
     def forward_loss(
             self, data_points: Union[List[Sentence], Sentence], sort=True
     ) -> torch.tensor:
+        print("Forward loss")
         features = self.forward(data_points)
+        print(features.size())
         return self._calculate_loss(features, data_points)
 
     def evaluate(
@@ -296,10 +306,12 @@ class SimpleSequenceTagger(flair.nn.Model):
                 return overall_loss / batch_no
 
     def forward(self, sentences: List[Sentence]):
-
+        print("forward")
         self.embeddings.embed(sentences)
 
         names = self.embeddings.get_names()
+        print("Embedding names")
+        print(names)
 
         lengths: List[int] = [len(sentence.tokens) for sentence in sentences]
         longest_token_sequence_in_batch: int = max(lengths)
