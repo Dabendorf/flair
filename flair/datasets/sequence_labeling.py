@@ -274,6 +274,7 @@ class ColumnDataset(FlairDataset):
             # A couple of temporary variables needed
             frames = []     # Final frame objects
             frame_dict = {} # {'read.01': [('I', 'ARG0'), ...], ...}
+            frame_bio_dict = {} # {'read.01' : {1: "B-ARG0", 2: "ARG1"}, ...}
             verb_list = []  # ['read.01', 'accuse.01', ...]
             verb_dict = {}  # {2: "read.01", ...}
             tree_dict = {}  # {2: [1, 4, 22], 3: ...}
@@ -374,27 +375,62 @@ class ColumnDataset(FlairDataset):
 
                             # Adds all words of a role together
                             whole_string = ""
+                            bio_dict = {}
+
                             for word_id in word_id_list:
                                 whole_string += (id_text_dict[word_id] + " ")
                             whole_string = whole_string.rstrip()
+
+                            if len(word_id_list) == 1:
+                                bio_dict[word_id_list[0]] = ("B-" + sem_rol)
+                            else:
+                                bio_dict[word_id_list[0]] = ("B-" + sem_rol)
+                                for word_id in word_id_list[1:]:
+                                    bio_dict[word_id] = ("I-" + sem_rol)
 
                             # Two different ways depending if a frame appears two times
                             if len(verb_list) == len(set(verb_list)):
                                 if verb_list[idx] in frame_dict:
                                     frame_dict[verb_list[idx]].append((whole_string, (sem_rol)))
+                                    frame_bio_dict[verb_list[idx]].update(bio_dict)
                                 else:
                                     frame_dict[verb_list[idx]] = [(whole_string, sem_rol)]
+                                    frame_bio_dict[verb_list[idx]] = bio_dict
                             else:
                                 if (verb_list[idx]+frame_distinguisher+str(idx)) in frame_dict:
                                     frame_dict[verb_list[idx]+frame_distinguisher+str(idx)].append((whole_string, (sem_rol)))
+                                    frame_bio_dict[verb_list[idx]+frame_distinguisher+str(idx)].update(bio_dict)
                                 else:
                                     frame_dict[verb_list[idx]+frame_distinguisher+str(idx)] = [(whole_string, sem_rol)]
+                                    frame_bio_dict[verb_list[idx]+frame_distinguisher+str(idx)] = bio_dict
+                        elif sem_rol == "V":
+                            # Adds verb into bio list
+                            bio_dict = {k : "B-V"}
+                            if len(verb_list) == len(set(verb_list)):
+                                if verb_list[idx] in frame_dict:
+                                    frame_bio_dict[verb_list[idx]].update(bio_dict)
+                                else:
+                                    frame_bio_dict[verb_list[idx]] = bio_dict
+                            else:
+                                if (verb_list[idx]+frame_distinguisher+str(idx)) in frame_dict:
+                                    frame_bio_dict[verb_list[idx]+frame_distinguisher+str(idx)].update(bio_dict)
+                                else:
+                                    frame_bio_dict[verb_list[idx]+frame_distinguisher+str(idx)] = bio_dict
 
+            sen_len = len(sentence.tokens)
+            for fr, sub_dict in frame_bio_dict.items():
+                for ind in range(1, sen_len+1):
+                    if ind not in sub_dict:
+                        sub_dict[ind] = "O"
+            
             # Build frame object and append it to frame list for that sentence
             for frame, roles in frame_dict.items():
+                bio = " ".join([frame_bio_dict[frame][key] for key in sorted(frame_bio_dict[frame].keys(), reverse=False)])
+
                 if len(verb_list) != len(set(verb_list)):
                     frame = frame.split(frame_distinguisher)[0]
-                frame_temp = Frame(frame, roles)
+
+                frame_temp = Frame(frame, roles, bio)
                 frames.append(frame_temp)
 
             # Add frame list to sentence

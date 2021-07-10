@@ -1365,11 +1365,12 @@ class Corpus:
         :return: dictionary of semantic roles
         """
         tag_dictionary: Dictionary = Dictionary(add_unk=False)
-        # tag_dictionary.add_item("O")
+        tag_dictionary.add_item("O")
         for sentence in self.get_all_sentences():
             for frame in sentence.frames:
                 for role in frame.roles:
-                    tag_dictionary.add_item(role[1])
+                    tag_dictionary.add_item("B-"+role[1])
+                    tag_dictionary.add_item("I-"+role[1])
         return tag_dictionary
 
 
@@ -1460,10 +1461,11 @@ def randomly_split_into_two_datasets(dataset, length_of_first):
     return [Subset(dataset, first_dataset), Subset(dataset, second_dataset)]
 
 class Frame(DataPoint):
-    def __init__(self, frame: Token, roles : List[Span]):
+    def __init__(self, frame: Token, roles : List[Span], bio: str):
         super().__init__()
         self.frame = frame
         self.roles = roles
+        self.bio = bio
 
     def to(self, device: str, pin_memory: bool = False):
         self.frame.to(device, pin_memory)
@@ -1474,4 +1476,5 @@ class Frame(DataPoint):
         return len(roles)
 
     def __repr__(self):
-        return "Frame: "+str(self.frame)+"; Roles: "+str(self.roles)
+        return "Frame: "+str(self.frame) + "; Bio: "+self.bio
+        # return "Frame: "+str(self.frame) + "; Roles: "+str(self.roles)
